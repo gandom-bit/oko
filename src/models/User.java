@@ -43,6 +43,7 @@ public class User {
     private Game currentGame;
     private Farm farm;
 
+    private List<Recipe> recipes;
 
     // Registration part
 
@@ -57,6 +58,7 @@ public class User {
         this.friendshipXpsWithoutUsers = new HashMap<>();
         this.unreadMessages = new HashMap<>();
         this.allMessages = new HashMap<>();
+        this.recipes = new ArrayList<>();
 
         // Create friendship entries with existing users
         for (User existingUser : UserRepository.getInstance().getAllUsers()) {
@@ -66,6 +68,43 @@ public class User {
             existingUser.getFriendshipXpsWithoutUsers().put(this, 0);
         }
     }
+
+// متد برای بررسی اینکه آیا بازیکن در خانه است یا خیر
+public boolean isAtHome() {
+    if (farm == null || position == null) {
+        return false; // اگر بازیکن مزرعه یا موقعیت ندارد، در خانه نیست
+    }
+    return farm.getHomeTile().equals(position); // بررسی اینکه موقعیت فعلی بازیکن با خانه برابر است
+}
+
+// متد برای بررسی سطح مهارت مورد نیاز
+public boolean hasRequiredSkill(String requiredSkill) {
+    if (requiredSkill.equals("-")) {
+        return true; // اگر مهارت مورد نیاز تعریف نشده باشد، ساخت آزاد است
+    }
+
+    String[] skillParts = requiredSkill.split(" ");
+    if (skillParts.length != 3) {
+        System.out.println("Invalid skill format: " + requiredSkill);
+        return false;
+    }
+
+    String skillName = skillParts[0]; // نام مهارت (مثلاً Mining)
+    int requiredLevel;
+    try {
+        requiredLevel = Integer.parseInt(skillParts[2]); // سطح مورد نیاز (مثلاً 1)
+    } catch (NumberFormatException e) {
+        System.out.println("Invalid skill level: " + skillParts[2]);
+        return false;
+    }
+
+    int currentLevel = skills.stream()
+            .filter(skill -> skill.getName().equalsIgnoreCase(skillName))
+            .map(Skill::getLevel)
+            .findFirst()
+            .orElse(0); // سطح فعلی مهارت
+    return currentLevel >= requiredLevel;
+}
     public String getPlainPassword() {
         return plainPassword;
     }
@@ -416,5 +455,22 @@ public class User {
 
     public void setFarm(Farm farm) {
         this.farm = farm;
+    }
+
+    public List<Recipe> getRecipes() {
+        return recipes;
+    }
+
+    public void addRecipe(Recipe recipe) {
+        recipes.add(recipe);
+    }
+
+    public void learnRecipe(Recipe recipe) {
+        if (!recipes.contains(recipe)) { // اگر بازیکن قبلاً این دستور را یاد نگرفته باشد
+            recipes.add(recipe);
+            System.out.println("You have learned a new recipe: " + recipe.getName());
+        } else {
+            System.out.println("You already know this recipe: " + recipe.getName());
+        }
     }
 }
