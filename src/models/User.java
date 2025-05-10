@@ -490,4 +490,23 @@ public boolean hasRequiredSkill(String requiredSkill) {
             System.out.println("You already know this recipe: " + recipe.getName());
         }
     }
+
+    // متد برای دسترسی به یخچال
+    public Inventory getRefrigerator() {
+        Inventory refrigerator = new Inventory();
+        refrigerator.setItems(refrigeratorItems);
+        return refrigerator;
+    }
+
+    public void addToRefrigerator(Item item) {
+        if (refrigeratorItems == null) {
+            refrigeratorItems = new ArrayList<>();
+        }
+        refrigeratorItems.add(item);
+    }
+
+    public void removeFromRefrigerator(Item item) {
+        if (refrigeratorItems != null) {
+            refrigeratorItems.remove(item);
+        }
 }
