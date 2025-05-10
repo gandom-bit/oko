@@ -81,35 +81,54 @@ public class HomeController {
             return user.getEnergy().getCurrentEnergy() >= recipe.getEnergyCost();
         }
 
-        private void craftItem(String itemName) {
-            List<Recipe> recipes = user.getRecipes();
-            Recipe recipe = recipes.stream()
-                    .filter(r -> r.getName().equalsIgnoreCase(itemName))
-                    .findFirst()
-                    .orElse(null);
+    private void craftItem(String itemName) {
+        Recipe recipe = recipes.stream()
+                .filter(r -> r.getName().equalsIgnoreCase(itemName))
+                .findFirst()
+                .orElse(null);
 
-            if (recipe == null) {
-                System.out.println("You don't know this recipe.");
-                return;
-            }
-
-            if (!canCraft(recipe)) {
-                System.out.println("You don't have enough resources or energy to craft this item.");
-                return;
-            }
-
-            // مصرف مواد اولیه
-            for (Map.Entry<String, Integer> ingredient : recipe.getIngredients().entrySet()) {
-                user.getInventory().removeItem(ingredient.getKey(), ingredient.getValue());
-            }
-
-            // مصرف انرژی
-            user.getEnergy().decreaseEnergy(recipe.getEnergyCost());
-
-            // اضافه کردن آیتم به موجودی
-            user.getInventory().addItem(recipe.getName(), 1);
-            System.out.println(itemName + " crafted successfully!");
+        if (recipe == null) {
+            System.out.println("You don't know this recipe.");
+            return;
         }
+
+        if (!canCraft(recipe)) {
+            System.out.println("You don't have enough resources or energy to craft this item.");
+            return;
+        }
+
+        // مصرف مواد اولیه
+        for (Map.Entry<String, Integer> ingredient : recipe.getIngredients().entrySet()) {
+            user.getInventory().removeItem(ingredient.getKey(), ingredient.getValue());
+        }
+
+        // مصرف انرژی
+        user.getEnergy().decreaseEnergy(recipe.getEnergyCost());
+
+        // اضافه کردن آیتم ساخته‌شده
+        user.getInventory().addItem(recipe.getName(), 1);
+        System.out.println(itemName + " crafted successfully!");
+    }
+
+    private void sellItem(String itemName, int quantity) {
+        // پیدا کردن دستورالعمل مربوطه
+        Recipe recipe = recipes.stream()
+                .filter(r -> r.getName().equalsIgnoreCase(itemName))
+                .findFirst()
+                .orElse(null);
+
+        if (recipe == null) {
+            System.out.println("You don't know this item.");
+            return;
+        }
+
+        // فروش آیتم
+        int earnedMoney = user.getInventory().sellItem(itemName, quantity);
+        if (earnedMoney > 0) {
+            user.addMoney(earnedMoney); // اضافه کردن پول به کاربر
+            System.out.printf("Sold %d %s for %d gold.\n", quantity, itemName, earnedMoney);
+        }
+    }
 
     public Result cooking () {
         return null;

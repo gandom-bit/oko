@@ -44,7 +44,6 @@ public class User {
     private Farm farm;
 
     private List<Recipe> recipes;
-
     // Registration part
 
     public User(String username, String password, String nickname, String email, String gender) throws Exception {
@@ -59,6 +58,7 @@ public class User {
         this.unreadMessages = new HashMap<>();
         this.allMessages = new HashMap<>();
         this.recipes = new ArrayList<>();
+        this.money = money;
 
         // Create friendship entries with existing users
         for (User existingUser : UserRepository.getInstance().getAllUsers()) {
@@ -314,10 +314,6 @@ public boolean hasRequiredSkill(String requiredSkill) {
         this.refrigeratorItems = refrigeratorItems;
     }
 
-    public int getMoney() {
-        return money;
-    }
-
     public void setMoney(int money) {
         this.money = money;
     }
@@ -463,6 +459,27 @@ public boolean hasRequiredSkill(String requiredSkill) {
 
     public void addRecipe(Recipe recipe) {
         recipes.add(recipe);
+    }
+
+    // Getters and Setters
+    public int getMoney() {
+        return money;
+    }
+
+    // متد برای اضافه کردن پول به کاربر
+    public void addMoney(int amount) {
+        if (amount > 0) {
+            this.money += amount;
+        }
+    }
+
+    // متد برای کم کردن پول از کاربر
+    public void subtractMoney(int amount) {
+        if (amount > 0 && this.money >= amount) {
+            this.money -= amount;
+        } else {
+            System.out.println("Not enough money to subtract!");
+        }
     }
 
     public void learnRecipe(Recipe recipe) {
