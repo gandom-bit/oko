@@ -1,60 +1,93 @@
 package repository;
 
+import models.Animal;
 import models.Item;
 import models.Store;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class StoreRepository {
-    private static StoreRepository instance;
-    private List<Store> stores;
+    private static final StoreRepository INSTANCE = new StoreRepository();
+    private final List<Store> stores = new ArrayList<>();
 
-    static {
-
-        // blacksmith
-        Store blacksmithStore = new Store("blacksmith");
-        Item bsItem1 = new Item();
-        bsItem1.setName("Copper");
-        bsItem1.setId(13);
-        bsItem1.setBasePrice(75);
-        blacksmithStore.getItems().add(bsItem1);
-        Item bsItem2 = new Item();
-        bsItem2.setName("Iron");
-        bsItem2.setId(14);
-        bsItem2.setBasePrice(150);
-        blacksmithStore.getItems().add(bsItem2);
-        Item bsItem3 = new Item();
-        bsItem3.setName("Coal");
-        bsItem3.setId(17);
-        bsItem3.setBasePrice(150);
-        blacksmithStore.getItems().add(bsItem3);
-        Item bsItem4 = new Item();
-        bsItem4.setName("Gold");
-        bsItem4.setId(15);
-        bsItem4.setBasePrice(400);
-        blacksmithStore.getItems().add(bsItem4);
-        HashMap <Integer , Integer> upgradeCosts = new HashMap<>();
-        upgradeCosts.put(1, 2000); upgradeCosts.put(2, 5000); upgradeCosts.put(3, 10000); upgradeCosts.put(4, 25000);
-        blacksmithStore.setUpgradeCosts(upgradeCosts);
-        HashMap <Integer , Integer> upgradeBinsCosts = new HashMap<>();
-        upgradeBinsCosts.put(1, 1000); upgradeBinsCosts.put(2, 2500); upgradeBinsCosts.put(3, 5000);
-        upgradeBinsCosts.put(4, 12500);
-        blacksmithStore.setUpgradeBinsCosts(upgradeBinsCosts);
-        // ---------------------------------------------------------------------------
-        // marin's ranch
-        Store marinesRanchStore = new Store("marinesRanch");
-        Item mrItem1 = new Item();
-        mrItem1.setName("Hay");
-        mrItem1.setId(220);
-        mrItem1.setBasePrice(50);
-        marinesRanchStore.getItems().add(mrItem1);
-        Item mrItem2 = new Item();
-
-
-
-
+    public static StoreRepository getInstance() {
+        return INSTANCE;
     }
 
+    public void addStore(Store store) {
+        stores.add(store);
+    }
 
+    public void initializeStoreItems() {
+        for (Store store : stores) {
+            if ("Blacksmith".equalsIgnoreCase(store.getName())) {
+                store.getItems().addAll(List.of(
+                        createItem(13, "Copper", 75),
+                        createItem(14, "Iron", 150),
+                        createItem(17, "Coal", 150),
+                        createItem(15, "Gold", 400)
+                ));
+                store.setUpgradeCosts(Map.of(1,2000,2,5000,3,10000,4,25000));
+                store.setUpgradeBinsCosts(Map.of(1,1000,2,2500,3,5000,4,12500));
+                store.soldUpgrades.clear();
+                store.soldBinsUpgrades.clear();
+            } else if ("Marin'sRanch".equalsIgnoreCase(store.getName())) {
+                store.getItems().addAll(List.of(
+                        createItem(220, "Hay", 50),
+                        createItem(227, "Milk Pail", 1000),
+                        createItem(228, "Shears", 1000)
+                ));store.animals.addAll(List.of(
+                        new Animal("Chicken", "Coop", new String[]{"Coop"}, 800),
+                        new Animal("Duck", "Coop", new String[]{"Big Coop","Deluxe Coop"}, 1200),
+                        new Animal("Rabbit", "Coop", new String[]{"Deluxe Coop"}, 8000),
+                        new Animal("Dinosaur", "Coop", new String[]{"Big Coop"}, 14000),
+                        new Animal("Cow", "Barn", new String[]{"Barn"}, 1500),
+                        new Animal("Goat", "Barn", new String[]{"Big Barn","Deluxe"}, 4000),
+                        new Animal("Sheep", "Barn", new String[]{"Deluxe Barn"}, 8000),
+                        new Animal("Pig", "Barn", new String[]{"Deluxe Barn"}, 16000)
+                ));
+            } else if ("Carpenter'sShop".equalsIgnoreCase(store.getName())) {
+                store.getItems().addAll(List.of(
+                        createBuilding("Barn", 6000, 7, 4, Map.of("Wood", 350, "Stone", 150)),
+                        createBuilding("Big Barn", 12000, 7, 4, Map.of("Wood", 450, "Stone", 200)),
+                        createBuilding("Deluxe Barn", 25000, 7, 4, Map.of("Wood", 550, "Stone", 300)),
+                        createBuilding("Coop", 4000, 6, 3, Map.of("Wood", 300, "Stone", 100)),
+                        createBuilding("Big Coop", 10000, 6, 3, Map.of("Wood", 400, "Stone", 150)),
+                        createBuilding("Deluxe Coop", 20000, 6, 3, Map.of("Wood", 500, "Stone", 200)),
+                        createBuilding("Well", 1000, 3, 3, Map.of("Stone", 75)),
+                        createBuilding("Shipping Bin", 250, 1, 1, Map.of("Wood", 150))
+                ));
+                store.soldBuildings.clear();
+            } else if ("Fish Shop".equalsIgnoreCase(store.getName())) {
+                store.upgradePoleCosts = Map.of(0, 25, 1,500,2,1800,3,7500);
+                store.soldPoleUpgrades.clear();
+            }
+        }
+    }
+
+    private Item createItem(int id, String name, int storePrice) {
+        Item item = new models.Item();
+        item.setId(id);
+        item.setName(name);
+        item.setStorePrice(storePrice);
+        return item;
+    }
+
+    private Item createBuilding(String name, int cost, int width, int height, Map<String, Integer> materials) {
+        Item item = new Item();
+        item.setName(name);
+        item.setStorePrice(cost);
+
+        // ذخیره خصوصیات در properties
+        HashMap<String, Object> props = new HashMap<>();
+        props.put("width", width);
+        props.put("height", height);
+        props.put("materials", materials);
+        item.setProperties(props);
+
+        return item;
+    }
 }

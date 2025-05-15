@@ -1,5 +1,6 @@
 package models;
 
+import repository.NpcRepository;
 import repository.UserRepository;
 
 import java.security.MessageDigest;
@@ -22,28 +23,29 @@ public class User {
     private Tile position;
     private Energy energy = new Energy();
     private List<Skill> skills;
-    private Inventory inventory = new Inventory();
+    private Inventory inventory = new Inventory(Inventory.InventoryType.NORMAL);
     private List<Game> games = new ArrayList<>();
     private List<String> craftInstructions;
     private List<String> cookRecipes;
-    private Map<User, Integer> friendshipXpsWithoutUsers;
+    private Map<User, Integer> friendshipLevelWithUsers;
+    private Map<User, Integer> friendshipXpsWithUsers;
     private Map<Npc, Integer> friendshipXpsWithNPCs;
     private HashMap<User,String> unreadMessages;
     private HashMap<User,StringBuilder> allMessages;
     private List<Item> refrigeratorItems;
-    private int money;
+    private int money = 3000000;
     private List<Question> securityQuestions;
     private String securityAnswer;
     private List<Quest> activeQuests;
     private int selectedMapId;
     private List<Tools> tools;
     private Item equippedTool;
-    private List<Item> backpackItems;
 
     private Game currentGame;
     private Farm farm;
+    public boolean isInVillage = false;
 
-    private List<Recipe> recipes;
+
     // Registration part
 
     public User(String username, String password, String nickname, String email, String gender) throws Exception {
@@ -54,62 +56,38 @@ public class User {
         this.email = email;
         this.gender = gender;
         this.securityQuestions = new ArrayList<>();
-        this.friendshipXpsWithoutUsers = new HashMap<>();
+        this.friendshipXpsWithUsers = new HashMap<>();
         this.unreadMessages = new HashMap<>();
         this.allMessages = new HashMap<>();
-        this.recipes = new ArrayList<>();
-        this.money = money;
+        this.friendshipXpsWithNPCs = new HashMap<>();
+        this.friendshipXpsWithUsers = new HashMap<>();
+        this.friendshipLevelWithUsers = new HashMap<>();
 
-        // Create friendship entries with existing users
         for (User existingUser : UserRepository.getInstance().getAllUsers()) {
-            // Add friendship entry to new user's map
-            this.friendshipXpsWithoutUsers.put(existingUser, 0);
-            // Add friendship entry to existing user's map
-            existingUser.getFriendshipXpsWithoutUsers().put(this, 0);
+            this.friendshipLevelWithUsers.put(existingUser, 0);
+            existingUser.friendshipLevelWithUsers.put(this, 0);
+        }
+
+
+        for (User existingUser : UserRepository.getInstance().getAllUsers()) {
+            this.friendshipXpsWithUsers.put(existingUser, 0);
+            existingUser.getFriendshipXpsWithUsers().put(this, 0);
+        }
+
+        for (Npc existingNpc : NpcRepository.getInstance().getAllNpcs()) {
+            this.friendshipXpsWithNPCs.put(existingNpc, 0);
+        }
+
+        for (User user : UserRepository.getInstance().getAllUsers()) {
+            this.allMessages.put(user, new StringBuilder());
+            this.unreadMessages.put(user, "");
         }
     }
-
-// متد برای بررسی اینکه آیا بازیکن در خانه است یا خیر
-public boolean isAtHome() {
-    if (farm == null || position == null) {
-        return false; // اگر بازیکن مزرعه یا موقعیت ندارد، در خانه نیست
-    }
-    return farm.getHomeTile().equals(position); // بررسی اینکه موقعیت فعلی بازیکن با خانه برابر است
-}
-
-// متد برای بررسی سطح مهارت مورد نیاز
-public boolean hasRequiredSkill(String requiredSkill) {
-    if (requiredSkill.equals("-")) {
-        return true; // اگر مهارت مورد نیاز تعریف نشده باشد، ساخت آزاد است
-    }
-
-    String[] skillParts = requiredSkill.split(" ");
-    if (skillParts.length != 3) {
-        System.out.println("Invalid skill format: " + requiredSkill);
-        return false;
-    }
-
-    String skillName = skillParts[0]; // نام مهارت (مثلاً Mining)
-    int requiredLevel;
-    try {
-        requiredLevel = Integer.parseInt(skillParts[2]); // سطح مورد نیاز (مثلاً 1)
-    } catch (NumberFormatException e) {
-        System.out.println("Invalid skill level: " + skillParts[2]);
-        return false;
-    }
-
-    int currentLevel = skills.stream()
-            .filter(skill -> skill.getName().equalsIgnoreCase(skillName))
-            .map(Skill::getLevel)
-            .findFirst()
-            .orElse(0); // سطح فعلی مهارت
-    return currentLevel >= requiredLevel;
-}
     public String getPlainPassword() {
         return plainPassword;
     }
-    public Map<User, Integer> getFriendshipXpsWithoutUsers() {
-        return friendshipXpsWithoutUsers;
+    public Map<User, Integer> getFriendshipXpsWithUsers() {
+        return friendshipXpsWithUsers;
     }
     public static boolean verifyEmail(String email) {
         String regex = "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$";
@@ -271,13 +249,6 @@ public boolean hasRequiredSkill(String requiredSkill) {
         return craftInstructions;
     }
 
-    public void setFriendshipXpsWithoutUsers(User user, Integer xp) {
-        friendshipXpsWithoutUsers.put(user, xp);
-    }
-
-    public Integer getFriendshipXpsWithThisUser(User user) {
-        return friendshipXpsWithoutUsers.get(user);
-    }
 
     public void setcraftInstructions(List<String> craftInstructions) {
         this.craftInstructions = craftInstructions;
@@ -291,11 +262,12 @@ public boolean hasRequiredSkill(String requiredSkill) {
         this.cookRecipes = cookRecipes;
     }
 
-    public int getFriendshipLevelsWithUsers(User user) {
-        return friendshipXpsWithoutUsers.get(user) / 100;
+    public int getFriendshipXpsWithUsers(User user) {
+        return friendshipXpsWithUsers.get(user);
     }
+
     public void increaseFriendshipXpsWithUsers(User user, Integer xp) {
-        friendshipXpsWithoutUsers.put(user, friendshipXpsWithoutUsers.get(user) + xp);
+        friendshipXpsWithUsers.put(user, friendshipXpsWithUsers.get(user) + xp);
     }
 
     public void increaseFriendshipXpsWithNpc (Npc npc, Integer xp) {
@@ -306,12 +278,28 @@ public boolean hasRequiredSkill(String requiredSkill) {
         return friendshipXpsWithNPCs.get(npc) / 200;
     }
 
+    public void setFriendshipLevelWithUsers (User user, int level) {
+        friendshipLevelWithUsers.put(user, level);
+    }
+
+    public int getFriendshipLevelWithUsers (User user) {
+        if (friendshipLevelWithUsers.containsKey(user)) return friendshipLevelWithUsers.get(user);
+        int xp = friendshipXpsWithUsers.getOrDefault(user, 0);
+        if (xp < 100) return 0;
+        if (xp > 100 && xp < 300) return 1;
+        else return 2;
+    }
+
     public List<Item> getRefrigeratorItems() {
         return refrigeratorItems;
     }
 
     public void setRefrigeratorItems(List<Item> refrigeratorItems) {
         this.refrigeratorItems = refrigeratorItems;
+    }
+
+    public int getMoney() {
+        return money;
     }
 
     public void setMoney(int money) {
@@ -368,57 +356,79 @@ public boolean hasRequiredSkill(String requiredSkill) {
 
     public String showFriendshipLevelsWithUsers() {
         StringBuilder sb = new StringBuilder();
-        for (User user : friendshipXpsWithoutUsers.keySet()) {
-            sb.append(user.getNickname()).append(": ").append(friendshipXpsWithoutUsers.get(user)).append("\n");
+        for (User user : friendshipXpsWithUsers.keySet()) {
+            sb.append(user.getNickname()).append(": ").append(friendshipXpsWithUsers.get(user)).append("\n");
         }
         return sb.toString();
     }
 
-    public Result talk(User user, String message) {
+    public String showFriendshipLevelsWithNpcs() {
+        StringBuilder sb = new StringBuilder();
+        for (Npc npc : friendshipXpsWithNPCs.keySet()) {
+            sb.append(npc.getName()).append(": ").append(friendshipXpsWithNPCs.get(npc)).append("\n");
+        }
+        return sb.toString();
+    }
+
+    public Result talk(User receiver, String message) {
         Result result = new Result();
-        if (Math.abs(position.getPositionX() - user.getPosition().getPositionX()) > 1
-                || Math.abs(position.getPositionY() - user.getPosition().getPositionY()) > 1) {
+
+        if (Math.abs(position.getPositionX() - receiver.getPosition().getPositionX()) > 1 ||
+                Math.abs(position.getPositionY() - receiver.getPosition().getPositionY()) > 1) {
             result.setSuccess(false);
-            result.setMessage("You are far away!");
+            result.setMessage("You are too far away to talk!");
             return result;
         }
+
+        receiver.requestToTalk(this, message);
+
+        friendshipXpsWithUsers.put(receiver, friendshipXpsWithUsers.getOrDefault(receiver, 0) + 20);
+        receiver.friendshipXpsWithUsers.put(this, receiver.friendshipXpsWithUsers.getOrDefault(this, 0) + 20);
+
         result.setSuccess(true);
-        user.requestToTalk(this, message);
-        friendshipXpsWithoutUsers.put(user, friendshipXpsWithoutUsers.get(user) + 20);
-        user.increaseFriendshipXpsWithUsers(this, 20);
+        result.setMessage("Message delivered successfully");
         return result;
     }
 
-    public void requestToTalk(User user, String message) {
-        unreadMessages.put(user,message);
-        StringBuilder sb = new StringBuilder();
-        sb.append(allMessages.get(user).toString());
-        sb.append("\n");
-        sb.append(message);
+    public void requestToTalk(User sender, String message) {
+        unreadMessages.put(sender, message);
+        StringBuilder history = allMessages.getOrDefault(sender, new StringBuilder());
+        if (history.length() > 0) {
+            history.append("\n");
+        }
+        history.append(sender.getNickname()).append(": ").append(message);
+        allMessages.put(sender, history);
+        sender.allMessages.put(this, history);
     }
 
     public String getUnreadMessage() {
+        if (unreadMessages.isEmpty()) return "";
+
         StringBuilder sb = new StringBuilder();
-        for (User user : unreadMessages.keySet()) {
-            sb.append(user.getNickname()).append(": ").append(unreadMessages.get(user)).append("\n");
+        for (Map.Entry<User, String> entry : new HashMap<>(unreadMessages).entrySet()) {
+            if (entry.getValue() != null && !entry.getValue().isEmpty()) {
+                sb.append(entry.getKey().getNickname())
+                        .append(": ")
+                        .append(entry.getValue())
+                        .append("\n");
+            }
         }
+        unreadMessages.clear();
         return sb.toString();
     }
+
+    public StringBuilder getAllMessages(User target) {
+        return allMessages.getOrDefault(target, new StringBuilder());
+    }
+
     public Item getEquippedTool() {
         return equippedTool;
     }
 
-    public void setEquippedTool(Item equippedTool) {
-        this.equippedTool = equippedTool;
+    public void setEquippedTool(Item tool) {
+        this.equippedTool = tool;
     }
 
-    public List<Item> getBackpackItems() {
-        return backpackItems;
-    }
-
-    public void setBackpackItems(List<Item> backpackItems) {
-        this.backpackItems = backpackItems;
-    }
     public String showTalkHistory(User user) {
         return allMessages.get(user).toString();
     }
@@ -431,19 +441,6 @@ public boolean hasRequiredSkill(String requiredSkill) {
         this.currentGame = game;
     }
 
-    public void equipTool(int toolId) {
-        Item tool = getBackpackItems().stream()
-                .filter(item -> item.getId() == toolId)
-                .findFirst()
-                .orElse(null);
-
-        if (tool != null) {
-            setEquippedTool(tool);
-            System.out.println("Equipped: " + tool.getName());
-        } else {
-            System.out.println("Tool not found in backpack!");
-        }
-    }
 
     public Farm getFarm() {
         return farm;
@@ -453,60 +450,140 @@ public boolean hasRequiredSkill(String requiredSkill) {
         this.farm = farm;
     }
 
-    public List<Recipe> getRecipes() {
-        return recipes;
+    public void addAnimalPlace (Item animalPlace) {
+        animalPlaces.add(animalPlace);
     }
 
-    public void addRecipe(Recipe recipe) {
-        recipes.add(recipe);
+    public void removeAnimalPlace (Item animalPlace) {
+        animalPlaces.remove(animalPlace);
     }
 
-    // Getters and Setters
-    public int getMoney() {
-        return money;
+    public List<Item> getAnimalPlaces() {
+        return animalPlaces;
     }
 
-    // متد برای اضافه کردن پول به کاربر
-    public void addMoney(int amount) {
-        if (amount > 0) {
-            this.money += amount;
+    // marriage part :
+    private User spouse;
+
+    public void setSpouse(User spouse) { this.spouse = spouse; }
+    public User getSpouse() { return spouse; }
+    private Map<User, MarriageRequest> marriageRequests = new HashMap<>();
+    public void addMarriageRequest(User sender, Item ring) {
+        marriageRequests.put(sender, new MarriageRequest(ring));
+    }
+
+    public Map<User, MarriageRequest> getMarriageRequests() {
+        return marriageRequests;
+    }
+
+    public static class MarriageRequest {
+        private Item ring;
+        private boolean responded;
+
+        public MarriageRequest(Item ring) {
+            this.ring = ring;
         }
+
+        public boolean isResponded() { return responded; }
+        public void setResponded(boolean responded) { this.responded = responded; }
+        public Item getRing() { return ring; }
     }
 
-    // متد برای کم کردن پول از کاربر
-    public void subtractMoney(int amount) {
-        if (amount > 0 && this.money >= amount) {
-            this.money -= amount;
-        } else {
-            System.out.println("Not enough money to subtract!");
+    private String penaltyStartSeason;
+    private int penaltyStartDay;
+    private int penaltyStartYear;
+    private boolean hasEnergyPenalty;
+
+    public void applyEnergyPenalty() {
+        TimeSystem time = TimeSystem.getInstance();
+        this.penaltyStartSeason = time.getCurrentSeason();
+        this.penaltyStartDay = time.getCurrentDay();
+        this.penaltyStartYear = time.getCurrentYear();
+        this.hasEnergyPenalty = true;
+    }
+
+    public boolean isEnergyPenaltyActive() {
+        if (!hasEnergyPenalty) return false;
+
+        TimeSystem time = TimeSystem.getInstance();
+        int currentDay = time.getCurrentDay();
+        String currentSeason = time.getCurrentSeason();
+        int currentYear = time.getCurrentYear();
+
+        int startTotal = calculateTotalDays(penaltyStartSeason, penaltyStartDay, penaltyStartYear);
+        int currentTotal = calculateTotalDays(currentSeason, currentDay, currentYear);
+
+        if (currentTotal - startTotal >= 7) {
+            hasEnergyPenalty = false;
+            return false;
         }
+        return true;
     }
 
-    public void learnRecipe(Recipe recipe) {
-        if (!recipes.contains(recipe)) { // اگر بازیکن قبلاً این دستور را یاد نگرفته باشد
-            recipes.add(recipe);
-            System.out.println("You have learned a new recipe: " + recipe.getName());
-        } else {
-            System.out.println("You already know this recipe: " + recipe.getName());
+    private int calculateTotalDays(String season, int day, int year) {
+        int seasonIndex = seasonToIndex(season);
+        return (year - 1) * 112 + seasonIndex * 28 + day;
+    }
+
+    private int seasonToIndex(String season) {
+        return switch (season) {
+            case "Spring" -> 0;
+            case "Summer" -> 1;
+            case "Fall" -> 2;
+            case "Winter" -> 3;
+            default -> throw new IllegalArgumentException("Invalid season");
+        };
+    }
+
+    public String getUnreadMarriageRequests() {
+        StringBuilder sb = new StringBuilder();
+        for (User requester : marriageRequests.keySet()) {
+            if (!marriageRequests.get(requester).isResponded()) {
+                sb.append(requester.getNickname())
+                        .append(" wants to marry you (Ring: ")
+                        .append(marriageRequests.get(requester).getRing().getName())
+                        .append(")\n");
+            }
         }
+        return sb.toString();
     }
 
-    // متد برای دسترسی به یخچال
-    public Inventory getRefrigerator() {
-        Inventory refrigerator = new Inventory();
-        refrigerator.setItems(refrigeratorItems);
-        return refrigerator;
+    // animals
+    private List<Animal> animals = new ArrayList<>();
+    private List<Item> animalPlaces = new ArrayList<>();
+
+    public void addAnimal(Animal animal) {
+        animals.add(animal);
     }
 
-    public void addToRefrigerator(Item item) {
-        if (refrigeratorItems == null) {
-            refrigeratorItems = new ArrayList<>();
-        }
-        refrigeratorItems.add(item);
+    public List<Animal> getAnimals() {
+        return animals;
     }
 
-    public void removeFromRefrigerator(Item item) {
-        if (refrigeratorItems != null) {
-            refrigeratorItems.remove(item);
-        }
+    private List<Item> placedAnimalPlaces = new ArrayList<>();
+
+    private List<Animal> putAnimals = new ArrayList<>();
+
+    public List<Animal> getPutAnimals() {
+        return putAnimals;
+    }
+
+    public void addPutAnimal(Animal putAnimal) {
+        putAnimals.add(putAnimal);
+    }
+
+    public List<Item> getPlacedAnimalPlaces() {
+        return placedAnimalPlaces;
+    }
+
+    public void addPlacedAnimalPlace(Item item) {
+        placedAnimalPlaces.add(item);
+    }
+
+
+    // SKILLS
+    int fishingSkillsXp;
+    public int getFishingSkills() { return fishingSkillsXp / 50; }
+    public void increaseFishingSkills(int amount) { fishingSkillsXp += amount; }
+
 }

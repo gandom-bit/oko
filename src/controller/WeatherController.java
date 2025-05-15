@@ -10,9 +10,17 @@ import java.util.Random;
 import java.util.Set;
 
 public class WeatherController {
-    private Set<String> weathersSet = new HashSet<>(Arrays.asList("sunny", "rain", "snow", "storm"));
+    private static WeatherController instance;
+    private final Set<String> weathersSet = new HashSet<>(Arrays.asList("sunny", "rain", "snow", "storm"));
     private String currentWeather;
     private String forecastWeather;
+
+    public static WeatherController getInstance() {
+        if (instance == null) {
+            instance = new WeatherController();
+        }
+        return instance;
+    }
 
     public String handleCommand(WeatherCommands command) {
         switch (command) {
@@ -25,27 +33,9 @@ public class WeatherController {
         }
     }
 
-    public String applyWeatherEffects() {
-        switch (currentWeather) {
-            case "sunny":
-                return "Sunny weather: No special effects.";
-            case "rain":
-                irrigation();
-                return "Rainy weather: Crops are irrigated, tool consumption is 1.5x.";
-            case "storm":
-                thunder(null);
-                return "Stormy weather: Thunder struck some tiles.";
-            case "snow":
-                return "Snowy weather: Energy consumption is doubled.";
-            default:
-                return "Unknown weather type.";
-        }
-    }
-
-
     public boolean updateWeather() {
         if (currentWeather == null) {
-            currentWeather = "sunny"; // پیش‌فرض
+            currentWeather = "sunny";
         }
         Random random = new Random();
         String[] weatherOptions = weathersSet.toArray(new String[0]);
@@ -81,19 +71,12 @@ public class WeatherController {
 
     public Result thunder(Tile tile) {
         Random random = new Random();
-        String tileAffected;
-
-        if (tile == null) {
-            tileAffected = "Tile " + (random.nextInt(100) + 1);
-        } else {
-            tileAffected = tile.toString();
-        }
-
-        // اعمال تاثیرات رعد و برق
-        return new Result(true,"Thunder struck " + tileAffected + ". Trees may break or crops may be destroyed.");
+        return new Result(true,"Thunder applied to tile: " + (tile != null ? tile.toString() : "random tile"));
     }
 
     public Result irrigation() {
         return new Result(true,"Crops irrigated successfully.");
     }
+
+    public String getCurrentWeather() { return currentWeather; }
 }

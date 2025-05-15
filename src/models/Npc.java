@@ -6,7 +6,15 @@ import java.util.List;
 import java.util.Map;
 
 
-public class Npc {
+public class Npc implements StaticElement {
+
+    public boolean isPassable () {
+        return false;
+    };
+
+    public char symbol () {
+        return name.charAt(0);
+    }
     // مشخصات اصلی
     private String name;
     private String personality;
@@ -15,13 +23,15 @@ public class Npc {
     private Map<String, Dialog> dialogs = new HashMap<>();
     private Set<String> spokenToday = new HashSet<>();
 
-    private Tile tile;  // TODO: مقداردهی اولیه‌ی tile در زمان ایجاد یا لود نقشه
+    private final int positionX;
+    private final int positionY;
 
-    public Npc(String name, String personality, List<String> favoriteItems) {
+    public Npc(String name, String personality, List<String> favoriteItems, int x, int y) {
         this.name = name;
         this.personality = personality;
         this.favoriteItems = favoriteItems;
-        //this.tile = tile;
+        this.positionX = x;
+        this.positionY = y;
     }
 
 
@@ -35,12 +45,7 @@ public class Npc {
     public List<String> getFavoriteItems() {
         return favoriteItems;
     }
-    public Tile getTile() {
-        return tile;
-    }
-    public void setTile(Tile tile) {
-        this.tile = tile;
-    }
+
 
     public void defineDialog(String season,
                              String prompt,
@@ -49,18 +54,27 @@ public class Npc {
         dialogs.put(season, new Dialog(prompt, validReplies, npcAnswers));
     }
 
-    public String converse(User user, String reply) {
+    public String startConversation(User user) {
         String season = TimeSystem.getInstance().getCurrentSeason();
         String date = TimeSystem.getInstance().getCurrentDate();
         Dialog d = dialogs.get(season);
-        if (d == null) return "…";
-
+        if (d == null) {
+            return "…";
+        }
         String key = user.getUsername() + "#" + name + "#" + date;
         if (!spokenToday.contains(key)) {
             user.increaseFriendshipXpsWithNpc(this, 20);
             spokenToday.add(key);
         }
+        return d.prompt;
+    }
 
+    public String replyConversation(String reply) {
+        String season = TimeSystem.getInstance().getCurrentSeason();
+        Dialog d = dialogs.get(season);
+        if (d == null) {
+            return "…";
+        }
         if (d.validReplies.contains(reply)) {
             return d.npcAnswers.get(reply);
         } else {
@@ -78,6 +92,14 @@ public class Npc {
 
     public boolean isFavoriteItem(String itemName) {
         return favoriteItems.contains(itemName);
+    }
+
+    public int getPositionX() {
+        return positionX;
+    }
+
+    public int getPositionY() {
+        return positionY;
     }
 
     private class Dialog {

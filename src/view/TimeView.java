@@ -22,13 +22,10 @@ public class TimeView {
 //        }
 //        System.out.println("- cheat advance time <X>h: Advance time by X hours");
 //        System.out.println("- cheat advance date <X>d: Advance date by X days");
-//        System.out.println("- add <item>: Add item to shipping bin");
-//        System.out.println("- weather: Show current weather");
-//        System.out.println("- balance: Show user balance");
 //        System.out.println("- exit: Exit time system");
 
         while (true) {
-            System.out.print("> ");
+            //System.out.print("> ");
             String input = scanner.nextLine().trim();
 
             TimeCommands command = getCommand(input);
@@ -38,12 +35,6 @@ public class TimeView {
                 handleCheatAdvanceTime(input);
             } else if (input.startsWith("cheat advance date")) {
                 handleCheatAdvanceDate(input);
-            } else if (input.startsWith("add ")) {
-                handleAddToShippingBin(input);
-            } else if (input.equalsIgnoreCase("weather")) {
-                handleShowWeather();
-            } else if (input.equalsIgnoreCase("balance")) {
-                handleShowBalance();
             } else if (input.equalsIgnoreCase("exit")) {
                 System.out.println("Exiting Time System...");
                 break;
@@ -102,23 +93,5 @@ public class TimeView {
         } catch (Exception e) {
             System.out.println("Invalid format. Use: cheat advance date <X>d");
         }
-    }
-
-    private void handleAddToShippingBin(String input) {
-        try {
-            String[] parts = input.split(" ", 2);
-            String item = parts[1];
-            System.out.println(timeController.addToShippingBin(item));
-        } catch (Exception e) {
-            System.out.println("Invalid format. Use: add <item>");
-        }
-    }
-
-    private void handleShowWeather() {
-        System.out.println(timeController.getCurrentWeather());
-    }
-
-    private void handleShowBalance() {
-        System.out.println(timeController.getUserBalance());
     }
 }

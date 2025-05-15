@@ -2,7 +2,10 @@ package controller;
 
 import exceptions.GameException;
 import models.Game;
+import models.TimeSystem;
+import models.Tools;
 import models.User;
+import repository.QuestRepository;
 
 import java.util.*;
 
@@ -58,6 +61,19 @@ public class GameController {
             }
         }
         game.newGame(creator, players);
+        for (User user : game.getPlayers()) {
+            Tools.addBeginnerHoeToInventory(user.getInventory());
+            Tools.addBeginnerPickaxeToInventory(user.getInventory());
+            Tools.addBeginnerAxeToInventory(user.getInventory());
+            Tools.addBeginnerWateringcanToInventory(user.getInventory());
+            //Tools.addLearningFishingpoleToInventory(user.getInventory());
+            Tools.addBeginnerScytheToInventory(user.getInventory());
+            //Tools.addBeginnerMilkPailToInventory(user.getInventory());
+            //Tools.addBeginnerShearToInventory(user.getInventory());
+            Tools.addBeginnerTrashbinToInventory(user.getInventory());
+            user.getInventory().addItemByName("stone", 50000);
+            user.getInventory().addItemByName("wood", 50000);
+        }
         if (game.getState() == Game.GameState.MAP_SELECTION) {
             for (User user : game.getPlayers()) {
                 String input = scanner.nextLine();
@@ -83,6 +99,9 @@ public class GameController {
     }
 
     private void handleInGame () {
+        // initialization
+        QuestRepository.getInstance().initialize();
+
         int index = 0;
         for (User user : game.getPlayers()) {
             controllers.put(user, new GamePlayController(user.getFarm(), user, scanner, game));
@@ -94,6 +113,14 @@ public class GameController {
             GamePlayController controller = controllers.get(indexes.get(currentTurn));
             controller.getAndProcessInput();
             currentTurn = game.nextTurn();
+
+            TimeSystem.getInstance().advanceTime(1);
+            boolean dayChanged = TimeSystem.getInstance().advanceTime(1);
+            if (dayChanged) {
+                for (User user : game.getPlayers()) {
+                    controllers.get(user).initializeNextDay();
+                }
+            }
         }
     }
 }

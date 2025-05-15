@@ -1,18 +1,32 @@
 package models;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+
 
 public class Inventory {
     private List<Item> items;
     private int capacity;
     private int currentSize;
+    private InventoryType type;
     private User owner;
 
-    // Getters and Setters
+    public Inventory(InventoryType type) {
+        this.type = type;
+        items = new ArrayList<>();
+        switch (type) {
+            case NORMAL -> capacity = 12;
+            case BIG -> capacity = 24;
+            case DELUXE -> capacity = Integer.MAX_VALUE;
+        }
+    }
     public List<Item> getItems() {
         return items;
+    }
+
+    public enum InventoryType {
+        NORMAL, BIG, DELUXE
     }
 
     public void setItems(List<Item> items) {
@@ -27,97 +41,106 @@ public class Inventory {
         this.capacity = capacity;
     }
 
-    public int getCurrentSize() {
-        return currentSize;
+    public InventoryType getType() {
+        return type;
     }
 
-    public void setCurrentSize(int currentSize) {
-        this.currentSize = currentSize;
+    public void setType(InventoryType type) {
+        this.type = type;
+        switch (type) {
+            case NORMAL -> capacity = 12;
+            case BIG -> capacity = 24;
+            case DELUXE -> capacity = Integer.MAX_VALUE;
+        }
     }
 
-    public User getOwner() {
-        return owner;
-    }
-
-    public void setOwner(User owner) {
-        this.owner = owner;
-    }
-
-    // Add an item to the inventory
-    public void addItem(String item, int count) {
-        Item target = null;
+    public void addItem(Item item) {
         for (Item i : items) {
-            if (i.getName().equals(item)) {
-                target = i;
-                break;
+            if (i.getName().equalsIgnoreCase(item.getName())) {
+                i.setQuantity(i.getQuantity() + item.getQuantity());
+                return;
             }
         }
-        if (target == null) {
-            Item newItem = new Item();
-            newItem.setName(item);
-            newItem.setQuantity(count);
-            items.add(newItem);
+        if (type == InventoryType.DELUXE || items.size() < capacity) {
+            items.add(item);
         } else {
-            target.setQuantity(target.getQuantity() + count);
+            System.out.println("Inventory is full!");
         }
     }
 
-    // Remove an item from the inventory
-    public void removeItem(String item, int count) {
+    public void removeItem(Item item) {
+        for (int idx = 0; idx < items.size(); idx++) {
+            Item i = items.get(idx);
+            if (i.getName().equalsIgnoreCase(item.getName())) {
+                if (i.getQuantity() > item.getQuantity()) {
+                    i.setQuantity(i.getQuantity() - item.getQuantity());
+                } else {
+                    items.remove(idx);
+                }
+                return;
+            }
+        }
+    }
+
+    public void addItemByName(String itemName, int count) {
         for (Item i : items) {
-            if (i.getName().equals(item)) {
+            if (i.getName().equalsIgnoreCase(itemName)) {
+                i.setQuantity(i.getQuantity() + count);
+                return;
+            }
+        }
+        if (type == InventoryType.DELUXE || items.size() < capacity) {
+            Item i = new Item();
+            i.setName(itemName);
+            i.setQuantity(count);
+            items.add(i);
+        } else {
+            System.out.println("Inventory is full!");
+        }
+    }
+
+
+    public void removeItemByName(String itemName, int count) {
+        String normalized = itemName.trim().toLowerCase();
+        for (int idx = 0; idx < items.size(); idx++) {
+            Item i = items.get(idx);
+            if (i.getName().trim().toLowerCase().equals(normalized)) {
                 if (i.getQuantity() > count) {
                     i.setQuantity(i.getQuantity() - count);
-                } else if (i.getQuantity() == count) {
-                    items.remove(i);
+                } else {
+                    items.remove(idx);
                 }
-                break;
+                return;
             }
         }
     }
 
-    // Check if the inventory has a specific item with the required quantity
-    public boolean hasItem(String item, int count) {
+
+    public boolean hasItem(String itemName, int count) {
         for (Item i : items) {
-            if (i.getName().equals(item) && i.getQuantity() >= count) {
+            if (i.getName().equalsIgnoreCase(itemName) && i.getQuantity() >= count) {
                 return true;
             }
         }
         return false;
     }
 
-    // Get the count of a specific item
-    public int getItemCount(String itemName) {
+
+    public int getItemCount(Item item) {
         for (Item i : items) {
-            if (i.getName().equals(itemName)) {
+            if (i.getName().equalsIgnoreCase(item.getName())) {
                 return i.getQuantity();
             }
         }
-        return 0; // Item not found
+        return 0;
     }
 
-    // Get all items as a map (item name -> quantity)
-    public Map<String, Integer> getAllItems() {
-        Map<String, Integer> itemMap = new HashMap<>();
+
+    public HashMap<Item, Integer> getAllItems() {
+        HashMap<Item, Integer> map = new HashMap<>();
         for (Item i : items) {
-            itemMap.put(i.getName(), i.getQuantity());
+            map.put(i, i.getQuantity());
         }
-        return itemMap;
-    }
-
-    public int sellItem(String itemName, int quantity) {
-        for (Item item : items) {
-            if (item.getName().equals(itemName)) {
-                if (item.getQuantity() >= quantity) {
-                    item.setQuantity(item.getQuantity() - quantity);
-                    return quantity * item.getSellPrice(); // بازگشت مقدار پول حاصل از فروش
-                } else {
-                    System.out.println("Not enough items to sell.");
-                    return 0; // فروش ناموفق
-                }
-            }
-        }
-        System.out.println("Item not found in inventory.");
-        return 0; // آیتم پیدا نشد
+        return map;
     }
 }
